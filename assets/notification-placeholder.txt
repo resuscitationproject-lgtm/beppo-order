@@ -1,0 +1,4 @@
+管理画面の通知音は js/admin.js の Web Audio API で生成しているため、音声ファイルなしでも動作します。
+
+実際の店内用通知音へ差し替える場合は、権利を確認した短い音源を assets/notification.mp3 として配置し、js/admin.js の beep 関数を Audio 要素で再生する実装へ変更してください。
+iPad Safariでは、最初のユーザー操作で「通知音 ON」を押す必要があります。

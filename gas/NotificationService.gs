@@ -1,0 +1,6 @@
+function sendOrderNotifications_(order, remaining) {
+  var s=settings_(),phone=maskPhoneForNotice_(order.phone),lines=["【Beppo 新規注文】","","注文番号："+order.orderNumber,"受取時間："+order.pickupTime,"氏名："+order.customerName,"電話番号："+phone,"商品："+order.menuName,"数量："+order.quantity,"辛さ："+order.spice,"ビーガン："+(order.vegan?"希望":"なし"),"トッピング："+(order.toppings.join("、")||"なし"),"デザート："+(order.desserts.join("、")||"なし"),"ドリンク："+(order.drinks.join("、")||"なし"),"合計："+order.total.toLocaleString()+"円","注文後残数："+remaining+"食"],text=lines.join("\n");
+  if(s.CHAT_WEBHOOK_URL){try{UrlFetchApp.fetch(s.CHAT_WEBHOOK_URL,{method:"post",contentType:"application/json",payload:JSON.stringify({text:text}),muteHttpExceptions:true});}catch(error){logSystem_("WARN","GoogleChat","SEND_FAILED",error.message,order.orderNumber,{});}}
+  if(s.NOTIFICATION_EMAIL){try{MailApp.sendEmail({to:s.NOTIFICATION_EMAIL,subject:"【Beppo注文】"+order.pickupTime+"受取 "+order.customerName+"様 "+order.quantity+"食",body:text,name:"Beppo注文"});}catch(error){logSystem_("WARN","Gmail","SEND_FAILED",error.message,order.orderNumber,{});}}
+}
+function maskPhoneForNotice_(phone){var p=String(phone||"");return p.length>=7?p.slice(0,3)+"-XXXX-"+p.slice(-4):"****";}
