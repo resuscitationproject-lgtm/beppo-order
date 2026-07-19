@@ -1,4 +1,4 @@
-const CACHE_VERSION="beppo-shell-v7";
+const CACHE_VERSION="beppo-shell-v8";
 const APP_SHELL=["./","./index.html","./order.html","./confirm.html","./complete.html","./privacy.html","./offline.html","./admin.html","./css/variables.css","./css/reset.css","./css/style.css","./css/order.css","./css/admin.css","./js/config.js","./js/storage.js","./js/validation.js","./js/modal.js","./js/api.js","./js/app.js","./js/order.js","./js/confirm.js","./js/complete.js","./js/install.js","./js/admin.js","./assets/curry-placeholder.svg","./assets/shop-placeholder.svg","./assets/pottery-placeholder.svg","./assets/icon-192.svg","./assets/kitakyushu-it-club-logo.png"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE_VERSION).then(cache=>cache.addAll(APP_SHELL)));self.skipWaiting()});
 self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_VERSION).map(key=>caches.delete(key)))));self.clients.claim()});
