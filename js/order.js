@@ -12,6 +12,8 @@
     if(!Number.isNaN(date.getTime()))return new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit",hour12:false}).format(date);
     const match=text.match(/(\d{1,2}):(\d{2})/);return match?match[1].padStart(2,"0")+":"+match[2]:text;
   }
+  function tokyoNowMinutes(){const parts=new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());const hour=Number(parts.find(part=>part.type==="hour")?.value||0)%24,minute=Number(parts.find(part=>part.type==="minute")?.value||0);return hour*60+minute}
+  function isFuturePickupTime(value){const match=formatPickupTime(value).match(/^(\d{2}):(\d{2})$/);return!!match&&(Number(match[1])*60+Number(match[2])>tokyoNowMinutes())}
 
   function choice({name,value,label,detail,price,disabled,type="checkbox"}){
     const wrap=document.createElement("label");wrap.className="choice";
@@ -56,8 +58,10 @@
 
   function renderOrderOptions(){
     ["dessert","drink"].forEach(category=>$("#"+category+"-choices").replaceChildren(...state.extras.filter(item=>item.category===category).map(item=>choice({name:category,value:item.id,label:item.name,detail:`単品 ${yen(item.singlePrice)} ／ セット ${yen(item.setPrice)}`,price:yen(item.setPrice),disabled:!item.available}))));
-    $("#slot-choices").replaceChildren(...state.slots.map(slot=>{const time=formatPickupTime(slot.time);return choice({name:"pickupTime",value:time,label:time,detail:slot.available?`残り${slot.limit-slot.current}枠`:"受付終了",disabled:!slot.available,type:"radio"})}));
+    $("#slot-choices").replaceChildren(...state.slots.map(slot=>{const time=formatPickupTime(slot.time),future=isFuturePickupTime(time),available=slot.available&&future,reason=!future?"受付時間終了":slot.unavailableReason||"受付終了";return choice({name:"pickupTime",value:time,label:time,detail:available?`残り${slot.limit-slot.current}枠`:reason,disabled:!available,type:"radio"})}));
   }
+
+  function refreshExpiredSlots(){let changed=false;document.querySelectorAll('input[name="pickupTime"]').forEach(input=>{if(!isFuturePickupTime(input.value)&&!input.disabled){input.disabled=true;if(input.checked){input.checked=false;changed=true}const detail=input.nextElementSibling?.querySelector("small");if(detail)detail.textContent="受付時間終了"}});if(changed){saveDraft();const error=document.querySelector('[data-error="pickupTime"]');if(error)error.textContent="選択していた受取時間の受付が終了しました。別の時間を選んでください"}}
 
   function restoreDraft(){
     const draft=BeppoStorage.get("beppoOrderDraft",null);if(!draft)return;
@@ -90,6 +94,6 @@
     $("#add-plate").addEventListener("click",()=>{state.items.push(blankItem());renderPlates();updateTotal();saveDraft()});
     $("#order-form").addEventListener("change",()=>{updateTotal();saveDraft()});$("#order-form").addEventListener("input",saveDraft);
     $("#order-form").addEventListener("submit",event=>{event.preventDefault();const order=orderPayload();if(!validate(order)){document.querySelector(".field-error:not(:empty)")?.scrollIntoView({behavior:"smooth",block:"center"});return}BeppoStorage.set("beppoPendingOrder",order);location.href="./confirm.html"});
-    $("#order-retry").addEventListener("click",load);load();
+    $("#order-retry").addEventListener("click",load);setInterval(refreshExpiredSlots,30000);load();
   });
 })();
