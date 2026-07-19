@@ -10,7 +10,7 @@
     const body = root.querySelector(".modal-body");
     if (options.html) body.innerHTML = options.html; else body.textContent = options.message || "";
     const actions = root.querySelector(".modal-actions");
-    (options.actions || [{ label: "閉じる" }]).forEach(action => { const button = document.createElement("button"); button.type = "button"; button.className = `button ${action.className || "button-secondary"}`; button.textContent = action.label; button.addEventListener("click", () => { if (action.close !== false) close(); action.onClick?.(); }); actions.append(button); });
+    (options.actions || [{ label: "閉じる" }]).forEach(action => { const button = document.createElement("button"); button.type = "button"; button.className = `button ${action.className || "button-secondary"}`; button.textContent = action.label; button.addEventListener("click", async () => { button.disabled = true; try { if (action.onClick) await action.onClick(); if (action.close !== false) close(); } catch (_) { if (button.isConnected) button.disabled = false; } }); actions.append(button); });
     root.addEventListener("click", event => { if (event.target === root && options.dismissible !== false) close(); });
     root.addEventListener("keydown", event => { if (event.key === "Escape" && options.dismissible !== false) close(); });
     document.body.append(root); document.body.style.overflow = "hidden"; actions.querySelector("button")?.focus();
