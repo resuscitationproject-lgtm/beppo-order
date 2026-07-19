@@ -58,7 +58,7 @@
     const button = $("#submit-order");
     const errorPanel = $("#submit-error");
     button.disabled = true;
-    button.textContent = "取り置きを受け付けています…";
+    button.textContent = "モバイルオーダーを送信しています…";
     errorPanel.hidden = true;
     try {
       const result = await BeppoApi.createOrder(order);
