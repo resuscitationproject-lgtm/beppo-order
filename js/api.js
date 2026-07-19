@@ -21,8 +21,7 @@
     ]
   };
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-  async function fetchWithTimeout(url, options) {
-    const timeout = config.requestTimeoutMs || 12000;
+  async function fetchWithTimeout(url, options, timeout) {
     if (window.AbortController) { const controller = new AbortController(); const timer = setTimeout(()=>controller.abort(), timeout); try { return await fetch(url,{...options,signal:controller.signal}); } finally { clearTimeout(timer); } }
     return Promise.race([fetch(url, options), new Promise((_, reject)=>setTimeout(()=>reject(new Error("TIMEOUT")),timeout))]);
   }
@@ -59,7 +58,8 @@
     let url=config.apiUrl; let options={method,cache:"no-store",redirect:"follow"};
     if(method==="GET") url += `${url.includes("?")?"&":"?"}action=${encodeURIComponent(action)}&payload=${encodeURIComponent(JSON.stringify(payload))}`;
     else { url+=`${url.includes("?")?"&":"?"}_ts=${Date.now()}`;options.headers={"Content-Type":"text/plain;charset=utf-8"};options.body=JSON.stringify({action,...payload}); }
-    let response; try { response=await fetchWithTimeout(url,options); } catch(error) { throw apiError(navigator.onLine?"通信に時間がかかっています。もう一度お試しください。":"インターネット接続をご確認ください。",error.name==="AbortError"?"TIMEOUT":"NETWORK_ERROR"); }
+    const timeout=method==="POST"&&action!=="createOrder"?(config.adminRequestTimeoutMs||30000):(config.requestTimeoutMs||12000);
+    let response; try { response=await fetchWithTimeout(url,options,timeout); } catch(error) { throw apiError(navigator.onLine?"通信に時間がかかっています。もう一度お試しください。":"インターネット接続をご確認ください。",error.name==="AbortError"?"TIMEOUT":"NETWORK_ERROR"); }
     const result=await response.json(); if(!result.success) throw apiError(result.message||"処理を完了できませんでした",result.code||"API_ERROR"); return result.data;
   }
   window.BeppoApi={ getStatus:()=>request("getStatus"), getMenu:()=>request("getMenu"), getPickupSlots:()=>request("getPickupSlots"), getOrder:n=>request("getOrder",{orderNumber:n}), createOrder:o=>request("createOrder",o,"POST"), admin:(action,payload={})=>request(action,payload,"POST") };
