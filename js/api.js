@@ -58,7 +58,7 @@
     if (config.demoMode || !config.apiUrl) return demoRequest(action,payload);
     let url=config.apiUrl; let options={method,cache:"no-store",redirect:"follow"};
     if(method==="GET") url += `${url.includes("?")?"&":"?"}action=${encodeURIComponent(action)}&payload=${encodeURIComponent(JSON.stringify(payload))}`;
-    else { options.headers={"Content-Type":"text/plain;charset=utf-8"}; options.body=JSON.stringify({action,...payload}); }
+    else { url+=`${url.includes("?")?"&":"?"}_ts=${Date.now()}`;options.headers={"Content-Type":"text/plain;charset=utf-8"};options.body=JSON.stringify({action,...payload}); }
     let response; try { response=await fetchWithTimeout(url,options); } catch(error) { throw apiError(navigator.onLine?"通信に時間がかかっています。もう一度お試しください。":"インターネット接続をご確認ください。",error.name==="AbortError"?"TIMEOUT":"NETWORK_ERROR"); }
     const result=await response.json(); if(!result.success) throw apiError(result.message||"処理を完了できませんでした",result.code||"API_ERROR"); return result.data;
   }

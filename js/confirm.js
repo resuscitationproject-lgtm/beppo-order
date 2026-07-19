@@ -24,13 +24,12 @@
       location.replace("./order.html");
       return;
     }
+    const items=Array.isArray(order.items)&&order.items.length?order.items:[{menuName:order.menuName,spice:order.spice,vegan:order.vegan,toppings:order.toppings||[],subtotal:order.menuPrice}];
+    const itemRows=items.map((item,index)=>row(`${index+1}食目`,`${item.menuName}／${item.spice}／${item.vegan?"ビーガン":"通常"}${item.toppings?.length?"／"+item.toppings.join("・"):""}（${yen(item.subtotal||0)}）`));
     $("#confirm-summary").append(
       row("お名前", order.customerName),
       row("電話番号", mask(order.phone)),
-      row("基本メニュー", `${order.menuName} × ${order.quantity}`),
-      row("辛さ", order.spice),
-      row("ビーガン", order.vegan ? "希望する" : "なし"),
-      row("トッピング", order.toppings.join("、")),
+      ...itemRows,
       row("デザート", order.desserts.join("、")),
       row("ドリンク", order.drinks.join("、")),
       row("受取時間", order.pickupTime),
