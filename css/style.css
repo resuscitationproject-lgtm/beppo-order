@@ -72,6 +72,9 @@ body::before {
 .info-card dt { margin-top: 12px; color: var(--color-muted); font-size: 12px; }
 .info-card dd { margin: 2px 0 0; }
 .site-footer { padding: 48px max(18px,env(safe-area-inset-right)) max(40px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); border-top: 1px solid var(--color-border); text-align: center; color: var(--color-muted); }
+.developer-credit { width:min(100%,560px); margin:28px auto 0; padding-top:22px; border-top:1px solid var(--color-border); display:flex; align-items:center; justify-content:center; gap:14px; font-size:12px; line-height:1.6; }
+.developer-credit img { width:74px; height:auto; padding:5px; border-radius:7px; background:#fff; }
+@media(max-width:520px){.developer-credit{flex-direction:column}.developer-credit img{width:68px}}
 .footer-links { margin-bottom: 16px; display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
 .notice, .error-panel { padding: 14px 16px; border-radius: var(--radius-sm); background: rgba(216,168,62,.12); border: 1px solid rgba(216,168,62,.3); }
 .error-panel { background: rgba(169,78,63,.13); border-color: rgba(169,78,63,.45); }
