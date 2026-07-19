@@ -11,6 +11,8 @@
 - 通知：管理画面ポーリング、Web Audio通知音、Google Chat、Gmail
 - 決済：店舗支払いのみ
 
+注文は1食ごとの明細方式です。例えば「通常サイズ＋オムレツ」と「ハーフサイズ＋ゆで玉子」を同じ注文に入れ、それぞれ辛さ・ビーガン対応・トッピングを変えられます。
+
 `js/config.js` の `demoMode` は初期状態で `true` です。APIなしでも全画面と注文フローを確認できます。デモ管理PINは `1234` です。本番ではデモPINは使われず、GASのScript Propertiesに保存したハッシュだけで認証します。
 
 ## 2. デザインコンセプト
@@ -81,6 +83,16 @@ function configurePinOnce() {
 6. `js/config.js` の `apiUrl` にURLを設定し、`demoMode` を `false` にします。
 
 GASはレスポンス内の `success` と `code` で成否を判定します。POSTはプリフライトを避けやすい `text/plain` JSONで送信します。
+
+管理APIはPIN・セッショントークンを扱うため、認証情報がURLや履歴へ残るJSONPにはしていません。変更後は同じPOST経路で管理ダッシュボードを再取得し、スプレッドシートへ保存された値を画面へ反映します。
+
+### 1食ごとの注文機能へ更新する場合
+
+1. `gas/` の全ファイルをApps Scriptへ反映します。
+2. `setupSpreadsheet` を再実行し、注文履歴の末尾に `注文明細JSON` 列を追加します。既存注文は削除されません。
+3. GASを新バージョンとして再デプロイします。
+4. GitHub Pages側のHTML・CSS・JavaScript・画像・`service-worker.js` を上書きします。
+5. `service-worker.js` が `beppo-shell-v5` になっていることを確認します。
 
 ## 9. GitHub Pages公開
 
