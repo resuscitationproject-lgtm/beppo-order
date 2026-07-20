@@ -5,6 +5,8 @@
   const yen=value=>new Intl.NumberFormat("ja-JP").format(value)+"円";
   const spiceOptions=["辛さ控えめ","普通","辛口","現地風"];
 
+  function setLoading(active){state.loading=active;const overlay=$("#order-loading"),main=$("#order-main");if(overlay)overlay.hidden=!active;if(main)main.setAttribute("aria-busy",String(active));document.body.classList.toggle("order-is-loading",active)}
+
   function formatPickupTime(value){
     const text=String(value??"").trim();
     if(/^\d{1,2}:\d{2}$/.test(text)){const parts=text.split(":");return parts[0].padStart(2,"0")+":"+parts[1]}
@@ -84,11 +86,14 @@
   function handlePlateChange(event){const card=event.target.closest(".plate-card");if(!card)return;const item=state.items.find(value=>String(value.id)===card.dataset.itemId);if(!item)return;if(event.target.classList.contains("plate-menu"))item.menuId=event.target.value;if(event.target.classList.contains("plate-spice"))item.spice=event.target.value;if(event.target.classList.contains("plate-vegan"))item.vegan=event.target.value==="true";if(event.target.classList.contains("plate-topping")){const id=event.target.dataset.toppingId;item.toppingIds=event.target.checked?[...new Set([...item.toppingIds,id])]:item.toppingIds.filter(value=>value!==id)}updateTotal();saveDraft()}
 
   async function load(){
+    setLoading(true);
     try{const [data,slots]=await Promise.all([BeppoApi.getMenu(),BeppoApi.getPickupSlots()]);Object.assign(state,data,slots);state.items=[blankItem()];$("#order-stock").textContent=`${state.status.remaining}食`;renderPlates();renderOrderOptions();restoreDraft();updateTotal();const orderingOpen=["受付中","残りわずか"].includes(state.status.businessStatus)&&Number(state.status.remaining)>0;$("#confirm-button").disabled=!orderingOpen;$("#order-error").hidden=orderingOpen;if(!orderingOpen){$("#order-error p").textContent=state.status.businessStatus==="売り切れ"?"売り切れ・オーダーストップのため、現在モバイルオーダーを受け付けていません。":"現在モバイルオーダーを受け付けていません。";document.querySelectorAll("#order-form input,#order-form select,#order-form textarea,#order-form button").forEach(element=>element.disabled=true)}}
     catch(error){$("#order-error").hidden=false;$("#order-error p").textContent=error.message}
+    finally{setLoading(false)}
   }
 
   document.addEventListener("DOMContentLoaded",()=>{
+    setLoading(true);
     $("#plate-list").addEventListener("change",handlePlateChange);
     $("#plate-list").addEventListener("click",event=>{const button=event.target.closest(".plate-remove");if(!button)return;const card=button.closest(".plate-card");state.items=state.items.filter(item=>String(item.id)!==card.dataset.itemId);renderPlates();updateTotal();saveDraft()});
     $("#add-plate").addEventListener("click",()=>{state.items.push(blankItem());renderPlates();updateTotal();saveDraft()});
@@ -96,4 +101,5 @@
     $("#order-form").addEventListener("submit",event=>{event.preventDefault();const order=orderPayload();if(!validate(order)){document.querySelector(".field-error:not(:empty)")?.scrollIntoView({behavior:"smooth",block:"center"});return}BeppoStorage.set("beppoPendingOrder",order);location.href="./confirm.html"});
     $("#order-retry").addEventListener("click",load);setInterval(refreshExpiredSlots,30000);load();
   });
+  addEventListener("beforeunload",event=>{if(state.loading){event.preventDefault();event.returnValue=""}});
 })();
