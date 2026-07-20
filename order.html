@@ -14,13 +14,21 @@
 </head>
 <body class="order-shell">
   <noscript><p class="noscript">注文にはJavaScriptが必要です。店舗へお電話ください。</p></noscript>
+  <div id="order-loading" class="order-loading" role="status" aria-live="polite" aria-label="モバイルオーダーを読み込み中">
+    <div class="order-loading-card">
+      <span class="order-loading-spinner" aria-hidden="true"></span>
+      <strong>現在読み込み中</strong>
+      <p>本日のメニュー・残り食数・受取時間を確認しています。</p>
+      <small>画面が切り替わるまで、そのままお待ちください。</small>
+    </div>
+  </div>
   <header class="order-header">
     <a class="icon-button" href="./index.html" aria-label="トップページへ戻る">←</a>
     <strong class="order-brand">Beppo</strong>
     <span id="order-stock" class="header-stock" aria-live="polite">--食</span>
   </header>
 
-  <main class="container">
+  <main id="order-main" class="container" aria-busy="true">
     <div class="steps" aria-label="注文ステップ">
       <span class="step active">一皿ずつ</span><span class="step active">追加</span><span class="step active">受取</span><span class="step active">お名前</span>
     </div>
