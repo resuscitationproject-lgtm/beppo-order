@@ -1,4 +1,4 @@
-import { calculateCostTotal, calculateOrderTotal, toCsv } from './domain.js';
+import { calculateOrderTotal, toCsv } from './domain.js';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date());
@@ -37,12 +37,14 @@ async function createOrder(request, env) {
   const number = `B${businessDate.replaceAll('-', '').slice(2)}-${String(Date.now()).slice(-3)}`;
   const totalAmount = calculateOrderTotal(products);
   const existing = await env.DB.prepare('SELECT mobile_quantity, planned_quantity, reservation_quantity, counter_quantity FROM business_days WHERE business_date=?').bind(businessDate).first();
-  if (!existing || existing.planned_quantity - existing.mobile_quantity - existing.reservation_quantity - existing.counter_quantity < quantity) return json({ error: 'STOCK_SHORTAGE' }, 409);
+  if (!existing) return json({ error: 'BUSINESS_DAY_NOT_CONFIGURED' }, 409);
+  if (existing.planned_quantity - existing.mobile_quantity - existing.reservation_quantity - existing.counter_quantity < quantity) return json({ error: 'STOCK_SHORTAGE' }, 409);
   const statements = [
     env.DB.prepare('INSERT INTO orders(order_number,client_request_id,business_date,pickup_time,customer_name,phone,total_amount,source,notes,allergies) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(number, body.clientRequestId, businessDate, body.pickupTime, body.customerName, body.phone || '', totalAmount, body.source || 'direct', body.notes || '', body.allergies || ''),
-    env.DB.prepare('UPDATE business_days SET mobile_quantity=mobile_quantity+?,updated_at=CURRENT_TIMESTAMP WHERE business_date=?').bind(quantity, businessDate)
+    env.DB.prepare('UPDATE business_days SET mobile_quantity=mobile_quantity+?,updated_at=CURRENT_TIMESTAMP WHERE business_date=? AND planned_quantity-mobile_quantity-reservation_quantity-counter_quantity>=?').bind(quantity, businessDate, quantity)
   ];
-  await env.DB.batch(statements);
+  const batch = await env.DB.batch(statements);
+  if (!batch[1]?.meta?.changes) return json({ error: 'STOCK_SHORTAGE' }, 409);
   const order = { orderNumber: number, customerName: body.customerName, pickupTime: body.pickupTime, totalAmount };
   const inserted = await env.DB.prepare('SELECT id FROM orders WHERE order_number=?').bind(number).first();
   for (const item of products) await env.DB.prepare('INSERT INTO order_items(order_id,product_id,product_name_snapshot,quantity,sale_price,cost_price_snapshot,subtotal) VALUES(?,?,?,?,?,?,?)').bind(inserted.id, item.id, item.name, item.quantity, item.salePrice, item.costPrice, item.salePrice * item.quantity).run();
@@ -66,6 +68,16 @@ async function admin(request, env, path) {
       env.DB.prepare('INSERT INTO product_cost_history(product_id,cost_price,effective_from,created_by) VALUES(?,?,?,?)').bind(body.id, Number(body.costPrice), body.effectiveFrom || new Date().toISOString(), body.createdBy || 'admin')
     ]);
     return json({ saved: true });
+  }
+  const statusMatch = path.match(/^\/api\/admin\/orders\/([^/]+)\/status$/);
+  if (statusMatch && request.method === 'POST') {
+    const body = await request.json();
+    const allowed = new Set(['received', 'preparing', 'ready', 'completed', 'canceled']);
+    if (!allowed.has(body.status)) return json({ error: 'INVALID_STATUS' }, 400);
+    const completedAt = body.status === 'completed' ? new Date().toISOString() : null;
+    const result = await env.DB.prepare('UPDATE orders SET status=?,completed_at=? WHERE order_number=?').bind(body.status, completedAt, statusMatch[1]).run();
+    if (!result.meta.changes) return json({ error: 'ORDER_NOT_FOUND' }, 404);
+    return json({ updated: true });
   }
   if (path === '/api/admin/reports.csv') {
     const from = new URL(request.url).searchParams.get('from') || today();
